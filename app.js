@@ -105,20 +105,12 @@ const tips = {
 // WASTE CATEGORIZATION FUNCTION
 // ============================================================================
 
-// Friendly display names for demo items
-const demoItemNames = {
-  compost: "Onion",
-  plastic: "Water Bottle",
-  landfill: "Item", // Will be "Pen" or "Glasses" based on sub-match
-};
-
 /**
- * Maps a detected object label to a recycling category and friendly name.
- * DEMO VERSION: Only recognizes water bottle, pen, onion, glasses.
+ * Maps a detected object label to a recycling category.
  * Returns null for unrecognized items (they will be ignored).
  *
  * @param {string} label - The object class from detection
- * @returns {object|null} - { bucket, displayName } or null if not recognized
+ * @returns {object|null} - { bucket, matchedItem } or null if not recognized
  */
 function mapToRecycleBucket(label) {
   const t = (label || "").toLowerCase();
@@ -128,66 +120,38 @@ function mapToRecycleBucket(label) {
     for (const item of items) {
       // Exact match or partial match
       if (t === item.toLowerCase() || t.includes(item.toLowerCase())) {
-        let bucket, displayName;
+        let bucket;
 
         switch (category) {
           case "compost":
             bucket = "Compost";
-            displayName = "Onion";
             break;
           case "paper":
             bucket = "Paper / Cardboard";
-            displayName = "Paper";
             break;
           case "metal":
             bucket = "Metal";
-            displayName = "Metal Item";
             break;
           case "glass":
             bucket = "Glass";
-            displayName = "Glass Item";
             break;
           case "plastic":
             bucket = "Plastic";
-            displayName = "Water Bottle";
             break;
           case "landfill":
             bucket = "Landfill";
-            // Check if it's glasses or pen based on which item matched
-            if (
-              [
-                "sunglass",
-                "sunglasses",
-                "eyeglass",
-                "eyeglasses",
-                "glasses",
-                "spectacles",
-                "reading glasses",
-                "goggles",
-                "loupe",
-                "lens",
-                "optical",
-                "frame",
-                "monocle",
-                "bifocal",
-              ].some((g) => t.includes(g))
-            ) {
-              displayName = "Glasses";
-            } else {
-              displayName = "Pen";
-            }
             break;
           default:
             bucket = "Unknown";
-            displayName = "Item";
         }
 
-        return { bucket, displayName };
+        // Return the matched item from mappings as the display name
+        return { bucket, displayName: item };
       }
     }
   }
 
-  // DEMO: Return null for unrecognized items (ignore them)
+  // Return null for unrecognized items (ignore them)
   return null;
 }
 
@@ -543,7 +507,7 @@ async function loop() {
         for (const pred of predictions.slice(0, 3)) {
           const result = mapToRecycleBucket(pred.className);
 
-          if (result !== null && pred.probability > 0.05) {
+          if (result !== null && pred.probability >= 0.6) {
             // Found a recognized item!
             matched = true;
             noDetectionFrames = 0;
